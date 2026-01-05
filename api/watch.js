@@ -1,4 +1,4 @@
-import fetch from "node-fetch"; // ensure fetch works
+import fetch from "node-fetch"; // ensures fetch works on Vercel
 
 export default async function handler(req, res) {
   try {
@@ -6,34 +6,37 @@ export default async function handler(req, res) {
     const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
     if (!BOT_TOKEN || !CHAT_ID) {
-      return res.status(500).json({ error: "Missing Telegram credentials" });
+      return res.status(500).json({ error: "Missing TELEGRAM_BOT_TOKEN or CHAT_ID in env vars" });
     }
 
-    const url = "https://zealy.io/your-username/quests"; // put your real page here
+    const url = "https://zealy.io/cw/xgram/questboard"; // your Zealy questboard
 
     const response = await fetch(url);
     const html = await response.text();
 
-    // simple change detector
+    // simple change detector using page length
     const hash = html.length;
+
     globalThis.lastHash = globalThis.lastHash || null;
 
     if (globalThis.lastHash && globalThis.lastHash !== hash) {
-      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: CHAT_ID,
-          text: `⚡ New change detected on Zealy page!`
-        })
-      });
+      const text = `⚡ New change detected on your Zealy questboard!`;
+
+      await fetch(
+        `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chat_id: CHAT_ID, text })
+        }
+      );
     }
 
     globalThis.lastHash = hash;
 
     res.status(200).json({ status: "ok", hash });
   } catch (err) {
-    console.log("Error:", err.message);
+    console.error("Error:", err);
     res.status(500).json({ error: err.message });
   }
 }
