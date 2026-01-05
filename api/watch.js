@@ -1,44 +1,39 @@
+import fetch from "node-fetch"; // ensure fetch works
+
 export default async function handler(req, res) {
-  const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-  const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
-
-  if (!BOT_TOKEN || !CHAT_ID) {
-    return res.status(500).json({ error: "Missing Telegram credentials" });
-  }
-
-  // The page you want to watch
-  const url = "https://zealy.io/";
-
   try {
+    const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+    const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+
+    if (!BOT_TOKEN || !CHAT_ID) {
+      return res.status(500).json({ error: "Missing Telegram credentials" });
+    }
+
+    const url = "https://zealy.io/your-username/quests"; // put your real page here
+
     const response = await fetch(url);
     const html = await response.text();
 
-    // Very simple change detector (you can refine later)
+    // simple change detector
     const hash = html.length;
-
-    // Store last hash in memory (Vercel cold starts so we keep it simple)
     globalThis.lastHash = globalThis.lastHash || null;
 
     if (globalThis.lastHash && globalThis.lastHash !== hash) {
-      const text = `⚡ Change detected on page:\n${url}`;
-
-      await fetch(
-        `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            chat_id: CHAT_ID,
-            text
-          })
-        }
-      );
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: CHAT_ID,
+          text: `⚡ New change detected on Zealy page!`
+        })
+      });
     }
 
     globalThis.lastHash = hash;
 
-    res.json({ status: "ok", hash });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(200).json({ status: "ok", hash });
+  } catch (err) {
+    console.log("Error:", err.message);
+    res.status(500).json({ error: err.message });
   }
 }
